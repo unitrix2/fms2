@@ -1,456 +1,394 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <base target="_top">
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title><?= appName ?> · v<?= version ?></title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <link href="<?= include_('style') ?>" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Titan FMS | Contract Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; color: #1f2937; }
+    
+    /* Clean Sidebar */
+    .sidebar { background: #111827; color: #fff; transition: width 0.3s; }
+    .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; color: #9ca3af; transition: 0.2s; cursor: pointer; }
+    .sidebar-link:hover, .sidebar-link.active { background: #374151; color: #fff; }
+
+    /* Cards */
+    .card { background: white; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: #d1d5db; }
+
+    /* Badges */
+    .badge { padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+    .badge-active { background: #dcfce7; color: #166534; }
+    .badge-expired { background: #f3f4f6; color: #4b5563; }
+    
+    /* File Types */
+    .file-pink { border-left: 4px solid #ec4899; }
+    .file-brown { border-left: 4px solid #d97706; }
+
+    /* Transitions */
+    .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+    .fade-enter-from, .fade-leave-to { opacity: 0; }
+  </style>
 </head>
 <body>
-  <div id="app" class="app">
-    <div class="gradient-bg"></div>
-
-    <!-- FIRST-RUN ADMIN SETUP -->
-    <div id="setupView" class="card auth-card hidden">
-      <div class="brand"><h1>Initialize Admin</h1><p>First-time setup — create your ADMIN account</p></div>
-      <div class="field"><label>Name</label><input id="setupName" placeholder="Admin name"></div>
-      <div class="field"><label>Email</label><input id="setupEmail" type="email" placeholder="admin@office.gov"></div>
-      <div class="field"><label>Password</label><input id="setupPass" type="password" placeholder="Strong password"></div>
-      <button class="btn primary" id="btnSetupAdmin">Create Admin</button>
-      <div id="setupMsg" class="msg"></div>
+  <div id="app" class="h-screen flex overflow-hidden">
+    
+    <div v-if="loading" class="fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center">
+      <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <p class="mt-4 font-semibold text-gray-600">Syncing Titan Database...</p>
     </div>
 
-    <!-- AUTH -->
-    <div id="authView" class="card auth-card hidden">
-      <div class="brand"><h1><?= appName ?></h1><p>Modern, stylish, cloud-based file manager</p></div>
-      <div class="tabs"><button id="tabLogin" class="tab active">Login</button><button id="tabSignup" class="tab">Sign up</button></div>
-      <div id="loginPane">
-        <div class="field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@office.gov" /></div>
-        <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="••••••••" /></div>
-        <button class="btn primary" id="btnLogin">Login</button>
+    <div v-if="page === 'login'" class="fixed inset-0 bg-gray-50 flex items-center justify-center z-40">
+      <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
+        <div class="text-center mb-8">
+           <div class="inline-block p-3 bg-blue-100 rounded-xl text-blue-600 mb-3"><i class="fa-solid fa-layer-group text-2xl"></i></div>
+           <h1 class="text-2xl font-bold text-gray-900">Titan FMS</h1>
+           <p class="text-gray-500 text-sm">Contract & File Management</p>
+        </div>
+        <form @submit.prevent="handleLogin" class="space-y-4">
+          <input v-model="auth.email" type="text" placeholder="Username/Email" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" required>
+          <input v-model="auth.pass" type="password" placeholder="Password" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" required>
+          <button class="w-full bg-gray-900 text-white py-3 rounded-xl font-medium hover:bg-black transition">Sign In</button>
+        </form>
       </div>
-      <div id="signupPane" class="hidden">
-        <div class="field"><label>Name</label><input id="suName" type="text" placeholder="Your name" /></div>
-        <div class="field"><label>Email</label><input id="suEmail" type="email" placeholder="you@office.gov" /></div>
-        <div class="field"><label>Password</label><input id="suPass" type="password" placeholder="Create password" /></div>
-        <button class="btn" id="btnSignup">Request Approval</button>
-      </div>
-      <div id="authMsg" class="msg"></div>
     </div>
 
-    <!-- DASHBOARD (private) -->
-    <div id="dashView" class="hidden">
-      <header class="topbar">
-        <div class="left"><h2>Dashboard</h2><div class="badge" id="currentUser"></div></div>
-        <div class="right">
-          <button id="btnExport" class="btn small">Export</button>
-          <button id="btnAdmin" class="btn small">Admin Panel</button>
-          <button id="btnLogout" class="btn small warn">Logout</button>
+    <template v-else>
+      <aside class="sidebar w-64 flex-shrink-0 flex flex-col">
+        <div class="p-6 border-b border-gray-800">
+          <h2 class="text-xl font-bold tracking-tight">TITAN <span class="text-blue-500">PRO</span></h2>
+          <div class="text-xs text-gray-500 mt-1">Logged in as {{ user.name }}</div>
         </div>
-      </header>
-
-      <section class="toolbar">
-        <div class="group">
-          <button id="btnCreateFile" class="btn primary">Create File</button>
-          <button id="btnAddLetter" class="btn">Add Letter</button>
-          <button id="btnCopyMove" class="btn">Copy/Move</button>
-        </div>
-        <div class="group">
-          <div class="search"><input id="searchBox" placeholder="Search files, sub-files, letters..." /><div id="suggestions" class="suggestions"></div></div>
-          <select id="filterType">
-            <option value="ALL">All Types</option>
-            <option>Pink File</option><option>Brown File</option>
-            <option>White Backing</option><option>Register</option><option>Custom</option>
-          </select>
-        </div>
-      </section>
-
-      <section id="fileExplorer" class="explorer"></section>
-    </div>
-
-    <!-- PUBLIC READ-ONLY VIEW (no login) -->
-    <div id="publicView" class="card auth-card hidden" style="max-width:760px;">
-      <div class="brand"><h1>File Snapshot (Read-only)</h1><p>This public page shows basic details only.</p></div>
-      <div id="pubBody"></div>
-      <div class="sub" style="margin-top:6px;">Want more? <a href="#" id="gotoLogin">Login</a> for full tools.</div>
-    </div>
-
-    <!-- ADMIN PANEL -->
-    <div id="adminView" class="drawer hidden">
-      <div class="drawer-head"><h3>Admin Panel</h3><button id="adminClose" class="icon-btn">&times;</button></div>
-      <div class="drawer-body">
-        <div class="admin-grid">
-          <div class="admin-card"><h4>Users & Approvals</h4><div id="usersList"></div></div>
-          <div class="admin-card">
-            <h4>Inventory Designer</h4><p class="sub">Define almirahs; numbers generate dropdowns automatically.</p>
-            <div id="invRows"></div>
-            <button id="invAdd" class="btn small">Add Almirah</button>
-            <button id="invSave" class="btn small primary">Save Inventory</button>
+        
+        <div class="flex-1 overflow-y-auto p-4 space-y-2">
+          <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-2">Main</div>
+          <div @click="navHome" :class="`sidebar-link ${!activeCat ? 'active':''}`"><i class="fa-solid fa-home w-5"></i> Dashboard</div>
+          
+          <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mt-6 mb-2 px-2">Contract Categories</div>
+          <div v-for="cat in db.categories" :key="cat.CategoryID" 
+               @click="selectCategory(cat)" 
+               :class="`sidebar-link ${activeCat?.CategoryID === cat.CategoryID ? 'active':''}`">
+            <i class="fa-solid fa-folder w-5"></i> {{ cat.Name }}
           </div>
-          <div class="admin-card"><h4>Permissions quick-sets</h4><ul id="permLegend"></ul></div>
-        </div>
-      </div>
-    </div>
 
-    <!-- MODAL -->
-    <div id="modal" class="modal hidden">
-      <div class="modal-card">
-        <div class="modal-head"><h4 id="modalTitle">Modal</h4><button id="modalClose" class="icon-btn">&times;</button></div>
-        <div id="modalBody" class="modal-body"></div>
-        <div class="modal-foot"><button id="modalOk" class="btn primary">OK</button></div>
+          <div v-if="user.role==='Admin'" class="mt-8">
+             <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-2">System</div>
+             <div @click="page='admin'" :class="`sidebar-link ${page==='admin' ? 'active':''}`"><i class="fa-solid fa-cog w-5"></i> Settings</div>
+          </div>
+        </div>
+        <div class="p-4 border-t border-gray-800">
+          <button @click="logout" class="w-full py-2 text-sm text-red-400 hover:text-red-300 flex items-center justify-center gap-2"><i class="fa-solid fa-sign-out"></i> Logout</button>
+        </div>
+      </aside>
+
+      <main class="flex-1 flex flex-col bg-gray-50 overflow-hidden relative">
+        <header class="bg-white border-b px-8 py-4 flex justify-between items-center shadow-sm z-10">
+          <div class="flex items-center gap-2 text-sm">
+             <span @click="navHome" class="text-gray-500 hover:text-blue-600 cursor-pointer">Home</span>
+             <span v-if="activeCat" class="text-gray-400">/</span>
+             <span v-if="activeCat" @click="selectCategory(activeCat)" class="font-medium cursor-pointer hover:text-blue-600">{{ activeCat.Name }}</span>
+             <span v-if="activeContract" class="text-gray-400">/</span>
+             <span v-if="activeContract" class="font-bold text-gray-900">{{ activeContract.FirmName }}</span>
+          </div>
+          
+          <div class="flex gap-4">
+             <input v-model="search" type="text" placeholder="Search anything..." class="bg-gray-100 border-none rounded-lg px-4 py-2 text-sm w-64 focus:ring-2 focus:ring-blue-500 outline-none">
+             <button v-if="canAdd" @click="openCreateModal" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-lg shadow-blue-200">
+               <i class="fa-solid fa-plus mr-1"></i> Add {{ addLabel }}
+             </button>
+          </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8">
+          
+          <div v-if="!activeCat && page!=='admin' && !viewFileId" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+             <div v-for="cat in db.categories" @click="selectCategory(cat)" class="card p-6 cursor-pointer group">
+                <div class="flex justify-between items-start mb-4">
+                   <div class="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition"><i class="fa-solid fa-folder-tree text-xl"></i></div>
+                   <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-md">{{ getContractCount(cat.CategoryID) }} Contracts</span>
+                </div>
+                <h3 class="font-bold text-lg text-gray-900">{{ cat.Name }}</h3>
+                <p class="text-sm text-gray-500 mt-1 line-clamp-2">{{ cat.Description }}</p>
+             </div>
+             <div v-if="db.categories.length===0" class="col-span-full text-center py-20 text-gray-400">
+                <i class="fa-solid fa-box-open text-4xl mb-2"></i><br>No Categories. Create one to start.
+             </div>
+          </div>
+
+          <div v-if="activeCat && !activeContract && !viewFileId" class="max-w-5xl mx-auto">
+             <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+               <i class="fa-solid fa-file-contract text-blue-600"></i> Contracts for {{ activeCat.Name }}
+             </h2>
+             <div class="space-y-4">
+               <div v-for="con in filteredContracts" :key="con.ContractID" @click="selectContract(con)" class="card p-5 cursor-pointer flex items-center justify-between hover:border-blue-400">
+                  <div class="flex items-center gap-4">
+                     <div :class="`w-2 h-16 rounded-full ${con.Status==='Active'?'bg-green-500':'bg-gray-300'}`"></div>
+                     <div>
+                        <h3 class="font-bold text-lg text-gray-800">{{ con.FirmName }}</h3>
+                        <div class="text-sm text-gray-500 flex gap-4 mt-1">
+                           <span><i class="fa-regular fa-calendar mr-1"></i> {{ con.StartDate }} - {{ con.EndDate }}</span>
+                           <span><i class="fa-solid fa-hashtag mr-1"></i> {{ con.AgreementNo }}</span>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="text-right">
+                     <span :class="`badge ${con.Status==='Active'?'badge-active':'badge-expired'}`">{{ con.Status }}</span>
+                     <div class="text-xs text-gray-400 mt-2">ID: {{ con.ContractID }}</div>
+                  </div>
+               </div>
+             </div>
+          </div>
+
+          <div v-if="activeContract && !viewFileId" class="max-w-6xl mx-auto">
+             <div class="bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-200">
+                <div class="flex justify-between">
+                   <div>
+                      <h1 class="text-2xl font-bold text-gray-900">{{ activeContract.FirmName }}</h1>
+                      <div class="text-sm text-gray-500 mt-1">{{ activeContract.Description }}</div>
+                   </div>
+                   <div class="text-right">
+                      <div class="text-sm font-bold text-gray-700">Agreement No: {{ activeContract.AgreementNo }}</div>
+                      <div class="text-sm text-gray-500">{{ activeContract.StartDate }} to {{ activeContract.EndDate }}</div>
+                   </div>
+                </div>
+             </div>
+
+             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div v-for="file in filteredFiles" :key="file.FileID" class="card p-0 overflow-hidden">
+                   <div :class="`h-2 w-full ${file.Type==='Pink File'?'bg-pink-500':'bg-amber-600'}`"></div>
+                   <div class="p-5">
+                      <div class="flex justify-between items-start mb-2">
+                         <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{{ file.FileNo }}</span>
+                         <span class="text-xs text-green-600 font-bold" v-if="file.Status==='Active'">Active</span>
+                      </div>
+                      <h4 class="font-bold text-gray-900 mb-1 cursor-pointer hover:text-blue-600" @click="openFileDetails(file)">{{ file.FileName }}</h4>
+                      <div class="text-xs text-gray-500 mb-4">{{ file.Location }} • {{ file.Pages }} Pages</div>
+                      
+                      <div class="flex justify-between items-center border-t pt-3">
+                         <button @click="openFileDetails(file)" class="text-sm text-blue-600 font-medium hover:underline">Open File</button>
+                         <button @click="showQR(file)" class="text-gray-400 hover:text-black"><i class="fa-solid fa-qrcode"></i></button>
+                      </div>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+          <div v-if="viewFileId && currentFile" class="max-w-4xl mx-auto slide-up">
+             <button @click="closeFileView" class="mb-4 text-sm text-gray-500 hover:text-black"><i class="fa-solid fa-arrow-left"></i> Back to Contract</button>
+             
+             <div class="card p-8 relative">
+                <div class="absolute top-0 right-0 p-6">
+                   <img :src="`https://chart.googleapis.com/chart?chs=100x100&cht=qr&chl=${encodeURIComponent(currentFile.QrCodeURL)}`" class="border p-1 rounded">
+                </div>
+                
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ currentFile.FileName }}</h1>
+                <div class="flex gap-4 text-sm text-gray-500 mb-6">
+                   <span><i class="fa-solid fa-hashtag"></i> {{ currentFile.FileNo }}</span>
+                   <span><i class="fa-solid fa-location-dot"></i> {{ currentFile.Location }}</span>
+                   <span class="px-2 py-0.5 rounded-full bg-gray-100 text-xs border border-gray-300">{{ currentFile.Type }}</span>
+                </div>
+
+                <div class="border-t pt-6">
+                   <div class="flex justify-between items-center mb-4">
+                      <h3 class="font-bold text-lg">Documents / Sub-files</h3>
+                      <label class="bg-black text-white px-3 py-1.5 rounded-lg text-sm cursor-pointer hover:bg-gray-800">
+                         <i class="fa-solid fa-upload mr-1"></i> Upload
+                         <input type="file" hidden @change="uploadDoc">
+                      </label>
+                   </div>
+                   
+                   <div class="space-y-2">
+                      <div v-for="doc in currentDocs" class="p-3 bg-gray-50 rounded-lg flex justify-between items-center border hover:bg-white transition">
+                         <div class="flex items-center gap-3">
+                            <i class="fa-regular fa-file-pdf text-red-500 text-lg"></i>
+                            <span class="font-medium text-gray-700">{{ doc.Name }}</span>
+                         </div>
+                         <a :href="doc.Link" target="_blank" class="text-blue-600 text-sm hover:underline">View</a>
+                      </div>
+                      <div v-if="currentDocs.length===0" class="text-center py-6 text-gray-400 text-sm">No documents inside this file yet.</div>
+                   </div>
+                </div>
+             </div>
+          </div>
+          
+          <div v-if="page==='admin'" class="max-w-4xl mx-auto">
+             <h2 class="text-2xl font-bold mb-6">System Settings</h2>
+             <div class="card p-6">
+               <h3 class="font-bold mb-4">User Management</h3>
+               <table class="w-full text-sm text-left">
+                 <thead class="bg-gray-50 text-gray-500"><tr><th class="p-3">Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
+                 <tbody>
+                   <tr v-for="u in adminUsers" :key="u.idx" class="border-b"><td class="p-3">{{u.name}}</td><td>{{u.email}}</td><td>{{u.role}}</td><td>{{u.status}}</td></tr>
+                 </tbody>
+               </table>
+               <div class="mt-4 p-4 bg-yellow-50 text-yellow-800 rounded text-sm">To add users, use the 'Request Access' flow on login or manual DB entry in this version.</div>
+             </div>
+          </div>
+
+        </div>
+      </main>
+
+      <div v-if="modal.show" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+         <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl slide-up">
+            <h3 class="text-xl font-bold mb-4">Add {{ addLabel }}</h3>
+            <form @submit.prevent="submitCreate" class="space-y-4">
+               
+               <div v-if="!activeCat">
+                  <input v-model="form.name" placeholder="Category Name (e.g. Security)" class="w-full p-3 border rounded-lg" required>
+                  <textarea v-model="form.desc" placeholder="Description" class="w-full p-3 border rounded-lg"></textarea>
+               </div>
+
+               <div v-else-if="activeCat && !activeContract">
+                  <input v-model="form.firmName" placeholder="Firm Name" class="w-full p-3 border rounded-lg" required>
+                  <input v-model="form.agreeNo" placeholder="Agreement No" class="w-full p-3 border rounded-lg">
+                  <div class="flex gap-2">
+                     <div class="flex-1"><label class="text-xs text-gray-500">Start</label><input v-model="form.startDate" type="date" class="w-full p-3 border rounded-lg" required></div>
+                     <div class="flex-1"><label class="text-xs text-gray-500">End</label><input v-model="form.endDate" type="date" class="w-full p-3 border rounded-lg" required></div>
+                  </div>
+                  <textarea v-model="form.desc" placeholder="Notes" class="w-full p-3 border rounded-lg"></textarea>
+               </div>
+
+               <div v-else>
+                  <div class="flex gap-2">
+                     <input v-model="form.fileNo" placeholder="File No" class="flex-1 p-3 border rounded-lg" required>
+                     <select v-model="form.type" class="p-3 border rounded-lg"><option>Pink File</option><option>Brown File</option></select>
+                  </div>
+                  <input v-model="form.name" placeholder="File Name / Subject" class="w-full p-3 border rounded-lg" required>
+                  <select v-model="form.location" class="w-full p-3 border rounded-lg"><option value="" disabled selected>Select Location</option><option v-for="l in db.locations" :value="l">{{ l }}</option></select>
+                  <input v-model="form.pages" placeholder="Page Count" type="number" class="w-full p-3 border rounded-lg">
+               </div>
+
+               <div class="flex justify-end gap-3 pt-4">
+                  <button type="button" @click="modal.show=false" class="px-4 py-2 text-gray-500">Cancel</button>
+                  <button class="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold">Create</button>
+               </div>
+            </form>
+         </div>
       </div>
-    </div>
+
+    </template>
   </div>
 
   <script>
-    let BOOT=null, TOKEN=null, USER=null, PUBLIC_INV=[];
+    const API_URL = "https://fms2.clickworld.workers.dev"; // PASTE WORKER URL HERE WITHOUT TRAILING SLASH
 
-    function $(q){ return document.querySelector(q); }
-    function el(t,c,h){ const n=document.createElement(t); if(c) n.className=c; if(h!==undefined) n.innerHTML=h; return n; }
-    function show(q, yes){ const n=$(q); if(!n) return; n.classList.toggle('hidden',!yes); }
-    function msg(node, text, kind='info'){ node.textContent=text; node.className='msg '+kind; }
-    function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m]); }
-    function fileToBase64(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
-    function downloadBase64(b64, name, mime){ const a=document.createElement('a'); a.href='data:'+mime+';base64,'+b64; a.download=name; a.click(); }
+    const { createApp } = Vue;
+    createApp({
+      data() {
+        return {
+          loading: false, page: 'login', auth: { email:'', pass:'' }, user: null,
+          db: { categories: [], contracts: [], files: [], documents: [], locations: [] },
+          activeCat: null, activeContract: null, viewFileId: null, search: '',
+          modal: { show: false }, form: {}, adminUsers: []
+        }
+      },
+      computed: {
+        addLabel() {
+           if(!this.activeCat) return 'Category';
+           if(!this.activeCat || !this.activeContract) return 'Contract';
+           return 'File';
+        },
+        canAdd() { return this.user && this.page!=='admin' && !this.viewFileId; },
+        filteredContracts() {
+           if(!this.activeCat) return [];
+           return this.db.contracts.filter(c => c.CategoryID === this.activeCat.CategoryID);
+        },
+        filteredFiles() {
+           if(!this.activeContract) return [];
+           return this.db.files.filter(f => f.ContractID === this.activeContract.ContractID);
+        },
+        currentFile() { return this.db.files.find(f => f.FileID === this.viewFileId); },
+        currentDocs() { return this.db.documents.filter(d => d.FileID === this.viewFileId); }
+      },
+      mounted() {
+        // Deep Link Check
+        const params = new URLSearchParams(window.location.search);
+        if(params.get('view') === 'file' && params.get('id')) {
+           localStorage.setItem('pendingView', params.get('id')); // Handle after login
+        }
+      },
+      methods: {
+        async api(action, payload={}) {
+           this.loading = true;
+           try {
+             const r = await fetch(API_URL, {method:'POST', body:JSON.stringify({action, payload})});
+             const d = await r.json(); this.loading=false; return d;
+           } catch(e) { this.loading=false; alert('Error'); return {success:false}; }
+        },
+        async handleLogin() {
+           const res = await this.api('login', this.auth);
+           if(res.success) {
+              this.user = res.user; this.page = 'app'; await this.refreshDB();
+              // Handle Deep Link
+              const pending = localStorage.getItem('pendingView');
+              if(pending) {
+                 this.viewFileId = pending; localStorage.removeItem('pendingView');
+                 // Try to resolve breadcrumbs backwards (simplified)
+                 const f = this.db.files.find(x => x.FileID == pending);
+                 if(f) {
+                    this.activeContract = this.db.contracts.find(c => c.ContractID === f.ContractID);
+                    if(this.activeContract) this.activeCat = this.db.categories.find(c => c.CategoryID === this.activeContract.CategoryID);
+                 }
+              }
+           } else alert(res.msg);
+        },
+        async refreshDB() {
+           const res = await this.api('getData');
+           if(res.success) this.db = res.data;
+           if(this.user.role === 'Admin') {
+              const uRes = await this.api('getUsers');
+              if(uRes.success) this.adminUsers = uRes.data;
+           }
+        },
+        
+        // Navigation
+        navHome() { this.activeCat=null; this.activeContract=null; this.viewFileId=null; },
+        selectCategory(c) { this.activeCat=c; this.activeContract=null; this.viewFileId=null; },
+        selectContract(c) { this.activeContract=c; this.viewFileId=null; },
+        openFileDetails(f) { this.viewFileId = f.FileID; },
+        closeFileView() { this.viewFileId = null; },
+        getContractCount(cid) { return this.db.contracts.filter(c => c.CategoryID === cid).length; },
+        
+        // Creation
+        openCreateModal() { this.form = {}; this.modal.show = true; },
+        async submitCreate() {
+           let action = '', payload = { ...this.form, user: this.user.name };
+           
+           if(!this.activeCat) { action='createCategory'; }
+           else if(!this.activeContract) { 
+              action='createContract'; 
+              payload.catId = this.activeCat.CategoryID; 
+           } else { 
+              action='createFile'; 
+              payload.contractId = this.activeContract.ContractID; 
+              payload.frontendUrl = window.location.origin + window.location.pathname; 
+           }
 
-    // Bootstrap
-    google.script.run.withSuccessHandler(boot=>{
-      BOOT=boot;
-      // Route sniffer early (for public view)
-      const url=new URL(location.href);
-      const route=url.searchParams.get('v');
-      if (route==='public'){ showPublic(url.searchParams.get('id')); return; }
-      if (boot.needSetup){ show('#setupView', true); bindSetup(); }
-      else initAuth();
-    }).api_bootstrap();
-
-    // ---------- Public read-only flow ----------
-    function showPublic(id){
-      show('#publicView', true);
-      show('#authView', false); show('#dashView', false); show('#setupView', false);
-      $('#gotoLogin').onclick=()=>{ location.href = location.origin + location.pathname; };
-      const host=$('#pubBody'); host.innerHTML='Loading...';
-      google.script.run.withSuccessHandler(res=>{
-        if (!res.ok){ host.innerHTML='<div class="msg error">Not found or unavailable.</div>'; return; }
-        const f=res.file, subs=res.subfiles||[];
-        const panel=el('div','file-detail',`
-          <h3>${escapeHtml(f.FileNo||'')} — ${escapeHtml(f.Name||'')}</h3>
-          <p>${escapeHtml(f.Description||'')}</p>
-          <div class="chips">
-            <span class="tag">${escapeHtml(f.Type||'')}</span>
-            <span class="tag">${escapeHtml(f.Status||'')}</span>
-            <span class="tag">Pages: ${f.Pages||0}</span>
-          </div>
-          <div class="sub">Location: Almirah ${f.LocationAlmirah||'-'}, Rack ${f.LocationRack||'-'}, Row ${f.LocationRow||'-'}, Column ${f.LocationColumn||'-'}</div>
-          <h4 style="margin-top:10px;">Sub-files (${subs.length})</h4>
-        `);
-        subs.forEach(s=> panel.appendChild(el('div','sub-item',`<b>${escapeHtml(s.Name||'')}</b> <span class="dim">(${escapeHtml(s.Type||'')})</span> — ${s.Pages||0} pages`)));
-        host.innerHTML=''; host.appendChild(panel);
-      }).api_file_public(id);
-    }
-
-    // ---------- First-run admin setup ----------
-    function bindSetup(){
-      $('#btnSetupAdmin').onclick=()=>{
-        const name=$('#setupName').value.trim(), email=$('#setupEmail').value.trim(), pass=$('#setupPass').value;
-        google.script.run.withSuccessHandler(res=>{
-          if (res.ok){ TOKEN=res.token; USER=res.user; localStorage.setItem('TH_FMS_TOKEN',TOKEN); enterApp(); }
-          else msg($('#setupMsg'), res.msg||'Setup failed', 'error');
-        }).api_setup_admin(name,email,pass);
-      };
-    }
-
-    // ---------- Auth ----------
-    function initAuth(){
-      const saved=localStorage.getItem('TH_FMS_TOKEN');
-      if (saved){
-        google.script.run.withSuccessHandler(res=>{
-          if(res.ok){ TOKEN=saved; USER=res.user; enterApp(); } else showAuth();
-        }).api_currentUser(saved);
-      } else showAuth();
-    }
-    function showAuth(){ show('#authView', true); bindAuth(); }
-    function bindAuth(){
-      $('#tabLogin').onclick=()=>{ $('#loginPane').classList.remove('hidden'); $('#signupPane').classList.add('hidden'); $('#tabLogin').classList.add('active'); $('#tabSignup').classList.remove('active'); };
-      $('#tabSignup').onclick=()=>{ $('#signupPane').classList.remove('hidden'); $('#loginPane').classList.add('hidden'); $('#tabSignup').classList.add('active'); $('#tabLogin').classList.remove('active'); };
-      $('#btnLogin').onclick=()=>{
-        const email=$('#loginEmail').value.trim(), pass=$('#loginPass').value;
-        google.script.run.withSuccessHandler(res=>{
-          if(res.ok){ TOKEN=res.token; USER=res.user; localStorage.setItem('TH_FMS_TOKEN',TOKEN); enterApp(); }
-          else msg($('#authMsg'), res.msg||'Login failed', 'error');
-        }).api_login(email, pass);
-      };
-      $('#btnSignup').onclick=()=>{
-        const name=$('#suName').value.trim(), email=$('#suEmail').value.trim(), pass=$('#suPass').value;
-        google.script.run.withSuccessHandler(res=>{
-          msg($('#authMsg'), res.msg, res.ok?'success':'error');
-        }).api_signup(email, name, pass);
-      };
-    }
-
-    // ---------- App (private) ----------
-    function enterApp(){
-      show('#publicView', false); show('#setupView', false); show('#authView', false); show('#dashView', true);
-      $('#currentUser').innerText = USER.name+' · '+USER.role;
-      bindDash();
-      preloadInventoryAndExplorer();
-    }
-    function bindDash(){
-      $('#btnAdmin').onclick=()=>openAdmin();
-      $('#btnCreateFile').onclick=()=> openCreateFile();
-      $('#btnAddLetter').onclick=()=> openAddLetter();
-      $('#btnCopyMove').onclick=()=> openCopyMove();
-      $('#btnExport').onclick=()=> openExport();
-      $('#btnLogout').onclick=()=>{ localStorage.removeItem('TH_FMS_TOKEN'); location.reload(); };
-      $('#filterType').onchange=()=> loadExplorer();
-      $('#searchBox').addEventListener('input', onSearchInput);
-    }
-
-    // Inventory for dropdowns
-    function preloadInventoryAndExplorer(){
-      google.script.run.withSuccessHandler(inv=>{ PUBLIC_INV=inv||[]; loadExplorer(); }).api_inventory_listPublic(TOKEN);
-    }
-
-    // Search
-    let tipTimer=null;
-    function onSearchInput(){
-      clearTimeout(tipTimer);
-      const t=$('#searchBox').value.trim(); const type=$('#filterType').value;
-      tipTimer=setTimeout(()=>{
-        google.script.run.withSuccessHandler(res=>{
-          const box=$('#suggestions'); box.innerHTML='';
-          (res.suggestions||[]).forEach(s=>{ const it=el('div','suggestion',s); it.onclick=()=>{ $('#searchBox').value=s; box.innerHTML=''; loadExplorer(); }; box.appendChild(it); });
-        }).api_search(TOKEN,{text:t, type});
-        loadExplorer();
-      },200);
-    }
-
-    // Explorer (private)
-    function loadExplorer(){
-      const type=$('#filterType').value; const text=$('#searchBox').value.trim();
-      google.script.run.withSuccessHandler(files=>{
-        const host=$('#fileExplorer'); host.innerHTML='';
-        files.forEach(f=>{
-          const card=el('div','file-card type-'+(f.Type||'Custom').replace(/\s+/g,''));
-          card.appendChild(el('div','file-head',
-            `<div class="file-tags">
-              <span class="tag">${f.Type}</span>
-              <span class="tag ${f.Status==='Archived'?'arch':''}">${f.Status}</span>
-            </div>
-            <h4>${f.FileNo} — ${escapeHtml(f.Name||'')}</h4>
-            <div class="sub">Almirah ${f.LocationAlmirah || '-'} · Rack ${f.LocationRack || '-'} · Row ${f.LocationRow || '-'} · Col ${f.LocationColumn || '-'}</div>
-            <div class="sub">Last action by: ${f.LastActionBy||f.UpdatedBy||'-'}</div>`));
-          const actions=el('div','actions');
-          const btnEdit=el('button','btn small','Edit'); btnEdit.onclick=()=> openEditFile(f);
-          const btnDel=el('button','btn small warn','Delete'); btnDel.onclick=()=> deleteFile(f);
-          const btnQR=el('button','btn small','QR'); btnQR.onclick=()=> openQRModal(f); // now public QR
-          actions.append(btnEdit, btnDel, btnQR);
-          card.appendChild(actions);
-          const exp=el('details','subs'); exp.appendChild(el('summary','',`Sub-files (${f.subfiles.length})`));
-          const list=el('div','sub-list'); (f.subfiles||[]).forEach(s=> list.appendChild(el('div','sub-item',`<b>${escapeHtml(s.Name||'')}</b> <span class="dim">(${s.Type})</span> — ${s.Pages||0} pages`)));
-          exp.appendChild(list); card.appendChild(exp); host.appendChild(card);
-        });
-      }).api_files_list(TOKEN,{text, type});
-    }
-
-    // Picker helpers
-    function lettersFromCount(n){ const out=[]; for(let i=0;i<n;i++) out.push(String.fromCharCode(65+i)); return out; }
-    function selectHTML(id, opts){ const o=['<option value="">-</option>'].concat((opts||[]).map(v=>`<option value="${v}">${v}</option>`)).join(''); return `<select id="${id}">${o}</select>`; }
-
-    function locPickersHTML(){
-      const alm=(PUBLIC_INV||[]).map(i=>i.almirah);
-      return `
-        <div class="grid">
-          <div><label>Almirah</label>${selectHTML('fAlm', alm)}</div>
-          <div><label>Rack</label>${selectHTML('fRack', [])}</div>
-          <div><label>Row</label>${selectHTML('fRow', [])}</div>
-          <div><label>Column</label>${selectHTML('fCol', [])}</div>
-        </div>
-        <p class="sub">Pickers auto-fill from Inventory to avoid typos.</p>`;
-    }
-    function bindLocationPickers(initial){
-      const almSel=$('#fAlm'), rackSel=$('#fRack'), rowSel=$('#fRow'), colSel=$('#fCol');
-      function fill(){ 
-        const a=almSel.value; const rec=(PUBLIC_INV||[]).find(x=>x.almirah===a);
-        const racks = rec? Array.from({length:rec.racks},(_,i)=>i+1) : [];
-        const rows  = rec? Array.from({length:rec.rows},(_,i)=>String.fromCharCode(65+i)) : [];
-        const cols  = rec? Array.from({length:rec.columns},(_,i)=>i+1) : [];
-        rackSel.innerHTML=['<option value="">-</option>'].concat(racks.map(x=>`<option>${x}</option>`)).join('');
-        rowSel.innerHTML=['<option value="">-</option>'].concat(rows.map(x=>`<option>${x}</option>`)).join('');
-        colSel.innerHTML=['<option value="">-</option>'].concat(cols.map(x=>`<option>${x}</option>`)).join('');
-        if (initial){ if (initial.LocationRack) rackSel.value=initial.LocationRack; if (initial.LocationRow) rowSel.value=initial.LocationRow; if (initial.LocationColumn) colSel.value=initial.LocationColumn; }
+           const res = await this.api(action, payload);
+           if(res.success) { this.modal.show=false; this.refreshDB(); }
+        },
+        async uploadDoc(e) {
+           const f = e.target.files[0];
+           if(!f) return;
+           const reader = new FileReader();
+           reader.onload = async (ev) => {
+              const res = await this.api('uploadDoc', {
+                 fileId: this.viewFileId, name: f.name, mime: f.type, 
+                 data: ev.target.result.split(',')[1], user: this.user.name
+              });
+              if(res.success) this.refreshDB();
+           };
+           reader.readAsDataURL(f);
+        },
+        showQR(f) { window.open(f.QrCodeURL, '_blank'); },
+        logout() { location.reload(); }
       }
-      almSel.onchange=fill; fill();
-      if (initial && initial.LocationAlmirah){ almSel.value=initial.LocationAlmirah; fill(); }
-    }
-
-    // Modal
-    function openModal(title, bodyHTML, okHandler){
-      $('#modalTitle').innerText=title; $('#modalBody').innerHTML=bodyHTML; show('#modal', true);
-      const ok=$('#modalOk'); ok.onclick=null; ok.onclick=()=>{ if (okHandler) okHandler(); };
-      $('#modalClose').onclick=()=> show('#modal', false);
-    }
-
-    // Create / Edit
-    function typeOptionsHTML(){ return ['Pink File','Brown File','White Backing','Register','Custom'].map(t=>`<option>${t}</option>`).join(''); }
-    function openCreateFile(){
-      openModal('Create File', `
-        <div class="grid"><div><label>File No. (unique)</label><input id="fNo" /></div><div><label>Name</label><input id="fName" /></div></div>
-        <div class="grid"><div><label>Type</label><select id="fType">${typeOptionsHTML()}</select></div><div><label>Status</label><select id="fStatus"><option>Active</option><option>Inactive</option><option>Archived</option></select></div></div>
-        <label>Description</label><textarea id="fDesc"></textarea>
-        ${locPickersHTML()}
-        <div class="grid"><div><label>Pages</label><input id="fPages" type="number" min="0" value="0"/></div><div><label>Attachments</label><input id="fAttach" type="file" multiple/></div></div>
-      `, async ()=>{
-        const files=$('#fAttach').files; const attIds=[];
-        for (let i=0;i<files.length;i++){ const b=await fileToBase64(files[i]); const up=await new Promise(res=>google.script.run.withSuccessHandler(res).api_upload_attachment(TOKEN, b.split(',').pop(), files[i].name, files[i].type)); if (up.ok) attIds.push(up.fileId); }
-        google.script.run.withSuccessHandler(r=>{ if(!r.ok) alert(r.msg||'Error'); show('#modal', false); loadExplorer(); }).api_file_create(TOKEN,{
-          fileNo:$('#fNo').value.trim(), name:$('#fName').value.trim(), description:$('#fDesc').value.trim(), type:$('#fType').value, status:$('#fStatus').value,
-          locAlmirah:$('#fAlm').value, locRack:$('#fRack').value, locRow:$('#fRow').value, locColumn:$('#fCol').value, pages:+($('#fPages').value||0), attachmentIds:attIds
-        });
-      });
-      bindLocationPickers();
-    }
-    function openEditFile(f){
-      openModal('Edit File', `
-        <label>Name</label><input id="efName" value="${escapeHtml(f.Name||'')}" />
-        <label>Description</label><textarea id="efDesc">${escapeHtml(f.Description||'')}</textarea>
-        <div class="grid"><div><label>Type</label><select id="efType">${typeOptionsHTML()}</select></div><div><label>Status</label><select id="efStatus"><option>Active</option><option>Inactive</option><option>Archived</option></select></div></div>
-        ${locPickersHTML()}
-        <div class="grid"><div><label>Pages</label><input id="efPages" type="number" min="0" value="${f.Pages||0}"/></div></div>
-      `, ()=>{
-        google.script.run.withSuccessHandler(r=>{ if(!r.ok) alert(r.msg||'Update failed'); show('#modal', false); loadExplorer(); }).api_file_update(TOKEN, f.Id, {
-          Name:$('#efName').value.trim(), Description:$('#efDesc').value.trim(), Type:$('#efType').value, Status:$('#efStatus').value,
-          LocationAlmirah:$('#fAlm').value, LocationRack:$('#fRack').value, LocationRow:$('#fRow').value, LocationColumn:$('#fCol').value,
-          Pages:+($('#efPages').value||0), LastActionBy: USER.email
-        });
-      });
-      $('#efType').value=f.Type; $('#efStatus').value=f.Status;
-      bindLocationPickers({LocationAlmirah:f.LocationAlmirah,LocationRack:f.LocationRack,LocationRow:f.LocationRow,LocationColumn:f.LocationColumn});
-    }
-    function deleteFile(f){ if (!confirm('Delete this file?')) return; google.script.run.withSuccessHandler(()=>loadExplorer()).api_file_delete(TOKEN,f.Id); }
-
-    // Letters
-    function openAddLetter(){
-      openModal('Add Letter', `
-        <div class="grid"><div><label>File ID</label><input id="ltFileId" placeholder="Target File Id"/></div><div><label>Sub-File ID (optional)</label><input id="ltSubId"/></div></div>
-        <label>Title</label><input id="ltTitle"/><label>Description</label><textarea id="ltDesc"></textarea>
-        <div class="grid"><div><label>Pages</label><input id="ltPages" type="number" min="0" value="1"/></div><div><label>Attachment</label><input id="ltAttach" type="file" multiple/></div></div>
-      `, async ()=>{
-        const files=$('#ltAttach').files; const attIds=[];
-        for (let i=0;i<files.length;i++){ const b=await fileToBase64(files[i]); const up=await new Promise(res=>google.script.run.withSuccessHandler(res).api_upload_attachment(TOKEN, b.split(',').pop(), files[i].name, files[i].type)); if (up.ok) attIds.push(up.fileId); }
-        google.script.run.withSuccessHandler(()=>{ show('#modal', false); loadExplorer(); }).api_letter_add(TOKEN,{
-          fileId:$('#ltFileId').value.trim(), subFileId:$('#ltSubId').value.trim()||'', title:$('#ltTitle').value.trim(), description:$('#ltDesc').value.trim(), pages:+($('#ltPages').value||0), attachmentIds:attIds
-        });
-      });
-    }
-
-    // Copy/Move
-    function openCopyMove(){
-      openModal('Copy/Move Sub-File', `
-        <div class="grid"><div><label>Sub-File ID</label><input id="cmSid" /></div><div><label>Destination File ID</label><input id="cmDest" /></div></div>
-        <label>Action</label><select id="cmAct"><option value="MOVE">Move</option><option value="COPY">Copy</option></select>
-      `, ()=>{
-        const isCopy=$('#cmAct').value==='COPY';
-        google.script.run.withSuccessHandler(()=>{ show('#modal', false); loadExplorer(); }).api_subfile_moveCopy(TOKEN,$('#cmSid').value.trim(),$('#cmDest').value.trim(),isCopy);
-      });
-    }
-
-    // Export
-    function openExport(){
-      openModal('Export Data', `
-        <div class="grid"><div><label>What</label><select id="exKind"><option value="FILES">Files</option></select></div><div><label>Format</label><select id="exFmt"><option>CSV</option><option>XLSX</option><option>PDF</option></select></div></div>
-        <p class="sub">PDFs use safe margins; XLSX generated from a temp Sheet.</p>
-      `, ()=>{
-        const kind=$('#exKind').value, fmt=$('#exFmt').value;
-        google.script.run.withSuccessHandler(res=>{
-          if (res.ok){ downloadBase64(res.download.data, res.download.name, res.download.mime); } else alert(res.msg||'Export failed');
-          show('#modal', false);
-        }).api_export(TOKEN, kind, fmt);
-      });
-    }
-
-    // QR → now generates PUBLIC link
-    function openQRModal(f){
-      openModal('Generate QR (Public) for '+f.FileNo, `
-        <div id="qrBox" class="qrbox"></div>
-        <p class="sub">This QR opens a <b>public, read-only</b> page of this file.</p>
-      `, async ()=>{
-        const canvas=$('#qrBox').querySelector('canvas');
-        const png=canvas.toDataURL('image/png');
-        google.script.run.withSuccessHandler(()=> loadExplorer()).api_set_file_qr(TOKEN, f.Id, png);
-        show('#modal', false);
-      });
-      const url = location.origin + location.pathname + '?v=public&id=' + encodeURIComponent(f.Id);
-      new QRCode(document.getElementById('qrBox'), { text:url, width:220, height:220 });
-    }
-
-    // Admin
-    function openAdmin(){
-      show('#adminView', true); $('#adminClose').onclick=()=> show('#adminView', false);
-      google.script.run.withSuccessHandler(list=>{
-        const host=$('#usersList'); host.innerHTML='';
-        list.forEach(u=>{
-          const row=el('div','user-row');
-          row.innerHTML=`<div><b>${u.Name}</b><div class="dim">${u.Email}</div></div>
-                         <div><span class="pill ${u.Role==='ADMIN'?'p-admin':'p-manager'}">${u.Role}</span></div>
-                         <div><span class="pill ${u.Status!=='ACTIVE'?'p-pending':'p-ok'}">${u.Status}</span></div>`;
-          const act=el('div','user-actions');
-          const selRole=el('select','',`<option>ADMIN</option><option>MANAGER</option>`); selRole.value=u.Role;
-          const selStatus=el('select','',`<option>ACTIVE</option><option>PENDING</option><option>DISABLED</option>`); selStatus.value=u.Status;
-          const permInput=el('input','',``); permInput.placeholder='comma perms (optional)';
-          const btnSave=el('button','btn small','Save'); btnSave.onclick=()=> {
-            const perms=permInput.value.trim()?permInput.value.split(',').map(x=>x.trim()).filter(Boolean):undefined;
-            google.script.run.withSuccessHandler(()=> openAdmin()).api_admin_setUser(TOKEN, u.Id, {Role:selRole.value, Status:selStatus.value, Permissions:perms});
-          };
-          act.append(selRole, selStatus, permInput, btnSave); row.appendChild(act); host.appendChild(row);
-        });
-      }).api_admin_listUsers(TOKEN);
-
-      google.script.run.withSuccessHandler(inv=>{
-        PUBLIC_INV=inv; const host=$('#invRows'); host.innerHTML=''; inv.forEach(addInvRow);
-      }).api_inventory_get(TOKEN);
-      $('#invAdd').onclick=()=> addInvRow({almirah:'A'+Math.floor(Math.random()*10), racks:5, rows:5, columns:10});
-      $('#invSave').onclick=()=>{
-        const rows=[...document.querySelectorAll('.inv-row')].map(r=>({almirah:r.querySelector('.i-alm').value, racks:+r.querySelector('.i-rack').value, rows:+r.querySelector('.i-rows').value, columns:+r.querySelector('.i-cols').value}));
-        google.script.run.withSuccessHandler(()=>{ alert('Inventory saved'); preloadInventoryAndExplorer(); }).api_inventory_set(TOKEN, rows);
-      };
-
-      const legend=['USER_MANAGE','INVENTORY_MANAGE','FILE_CREATE','FILE_EDIT','FILE_DELETE','FILE_MOVE_COPY','LETTER_ADD','EXPORT_DATA','VIEW_AUDIT','APPROVE_USERS'];
-      const ul=$('#permLegend'); ul.innerHTML=''; legend.forEach(p=> ul.appendChild(el('li','',p)));
-    }
-    function addInvRow(x){
-      const host=$('#invRows'); const row=el('div','inv-row');
-      row.innerHTML=`<input class="i-alm" value="${x.almirah||''}" placeholder="Almirah name"/>
-                     <input type="number" class="i-rack" value="${x.racks||1}" min="1" />
-                     <input type="number" class="i-rows" value="${x.rows||1}" min="1" />
-                     <input type="number" class="i-cols" value="${x.columns||1}" min="1" />`;
-      host.appendChild(row);
-    }
-
-    // (Optional legacy private route handler kept for backwards compatibility)
-    (function legacyPrivateRoute(){
-      const url=new URL(location.href); if (url.searchParams.get('v')!=='file') return;
-      const id=url.searchParams.get('id'); const saved=localStorage.getItem('TH_FMS_TOKEN');
-      if (!saved){ show('#authView', true); msg($('#authMsg'),'Please login to view file','info'); return; }
-      TOKEN=saved;
-      google.script.run.withSuccessHandler(res=>{ if(res.ok){ USER=res.user; enterApp(); } else showAuth(); }).api_currentUser(saved);
-      google.script.run.withSuccessHandler(list=>{
-        const f=list.find(x=>x.Id===id); if (!f){ alert('File not found'); return; }
-        show('#dashView', true);
-        const panel=el('div','file-detail',`
-          <h3>${f.FileNo} — ${escapeHtml(f.Name||'')}</h3>
-          <p>${escapeHtml(f.Description||'')}</p>
-          <div class="chips"><span class="tag">${f.Type}</span><span class="tag">${f.Status}</span><span class="tag">Pages: ${f.Pages||0}</span></div>
-          <div class="sub">Location: Almirah ${f.LocationAlmirah||'-'}, Rack ${f.LocationRack||'-'}, Row ${f.LocationRow||'-'}, Column ${f.LocationColumn||'-'}</div>
-          <h4>Sub-files (${f.subfiles.length})</h4>
-        `);
-        f.subfiles.forEach(s=> panel.appendChild(el('div','sub-item',`<b>${escapeHtml(s.Name||'')}</b> <span class="dim">(${s.Type})</span> — ${s.Pages||0} pages`)));
-        $('#fileExplorer').innerHTML=''; $('#fileExplorer').appendChild(panel);
-      }).api_files_list(TOKEN,{});
-    })();
+    }).mount('#app');
   </script>
 </body>
 </html>
